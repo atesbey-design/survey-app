@@ -34,9 +34,24 @@ export const Backend = {
         valid: boolean
         showInstructions?: boolean
       }>
-    // getUser: (token: string) => {
-    //   return api.post('user/getuser', token)
-    // }
+  },
+  Survey: {
+    getAllSurveys: () => {
+      return api.get(`survey/`, null)
+    },
+    getSurveyById: (surveyId: any) => {
+      return api.get(`survey/${surveyId}`)
+    },
+    updateSurvey: (data: any, surveyId: any) => {
+      return api.post('survey/create', data, surveyId)
+    },
+    createSurvey: (surveyData: any) => {
+      return api.post('survey/create', surveyData)
+    },
+    userSurveyResponse: (data: any) => {
+      console.log('buradakidata', data)
+      return api.post('survey/response', { data })
+    }
   }
 }
 

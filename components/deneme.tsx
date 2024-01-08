@@ -1,82 +1,155 @@
 "use client";
 import React, { useState } from "react";
 import Radio from "./Survey/Radio";
+import Backend from "@/data/Backend";
 
-const SurveyContainer: React.FC<{ data: any[] }> = ({ data }) => {
+const SurveyContainer: React.FC<{ data: any; surveyId: any }> = ({
+  data,
+  surveyId,
+}) => {
+  const [userResponses, setUserResponses] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [surveyData, setSurveyData] = useState<any>({
+    title: data.survey_title,
+    surveyId: data.survey_id,
+    description: data.survey_description,
+    questionsAnsver: {},
+  });
+
+  console.log(surveyData);
+
+  const handleResponseSurvey = async () => {
+    if (isSubmitting) {
+      return;
+    }
+    try {
+      setIsSubmitting(true);
+      const res = await Backend.Survey.userSurveyResponse(surveyData);
+    } catch (err) {
+      console.error("Error:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQuestionResponse = (questionId: any, response: any) => {
+    setSurveyData((prevSurveyData: any) => ({
+      ...prevSurveyData,
+      questionsAnsver: {
+        ...prevSurveyData.questionsAnsver,
+        [questionId]: {
+          id: questionId,
+          title: data.questions.find((q: any) => q.id === questionId)?.title,
+          response: response,
+        },
+      },
+    }));
+  };
+
   return (
     <div className="flex flex-col gap-10">
-      {data.map((surveyData, index) => (
-        <Survey key={index} {...surveyData} />
+      <h1>{data.survey_title}</h1>
+      <p>{data.survey_description}</p>
+      <Survey
+        questions={data.questions}
+        onQuestionResponse={handleQuestionResponse}
+      />
+      <button
+        className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+        onClick={() => handleResponseSurvey()}
+      >
+        Submit
+      </button>
+    </div>
+  );
+};
+
+const Survey: React.FC<any> = ({ questions, onQuestionResponse }: any) => {
+  return (
+    <div>
+      {questions.map((question: any, index: number) => (
+        <div key={index}>
+          <h1>
+            <span className="mr-5">{`Soru ${index + 1}:`}</span>
+            {question.title}
+          </h1>
+          {renderQuestionComponent(question, onQuestionResponse)}
+        </div>
       ))}
     </div>
   );
 };
 
-const Survey = ({ type, title, questions, onChange }: any) => {
-  return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">{title}</h1>
-      {type === "radio" && (
-        <SurveyRadio questions={questions} onChange={onChange} />
-      )}
-      {type === "rating" && <Rating title={title} onChange={onChange} />}
-      {type === "selection" && (
-        <Anket questions={questions} onChange={onChange} />
-      )}
-    </div>
-  );
+const renderQuestionComponent = (question: any, onQuestionResponse: any) => {
+  switch (question.survey_types) {
+    case "radio":
+      return (
+        <SurveyRadio
+          key={question.id}
+          question={question}
+          onQuestionResponse={onQuestionResponse}
+        />
+      );
+    case "rating":
+      return (
+        <Rating
+          key={question.id}
+          question={question}
+          onQuestionResponse={onQuestionResponse}
+        />
+      );
+    case "selection":
+      return (
+        <Anket
+          key={question.id}
+          question={question}
+          onQuestionResponse={onQuestionResponse}
+        />
+      );
+    default:
+      return null;
+  }
 };
 
-const SurveyRadio: React.FC<any> = ({ title, questions, onChange }) => {
+const SurveyRadio: React.FC<any> = ({ question, onQuestionResponse }: any) => {
+  const handleRadioChange = (selectedOption: any) => {
+    onQuestionResponse(question.id, selectedOption.value);
+  };
+
   return (
     <div>
-      <header className="w-full px-5 bg-white my-5 text-black py-5">
-        <h1
-          className="text-2xl font-bold text-center"
-          style={{ color: "#2d3748" }}
-        >
-          {title}
-        </h1>
-      </header>
       <div className="flex flex-col gap-5">
-        {questions &&
-          questions.map((question: any, questionIndex: any) => (
-            <div key={questionIndex}>
-              <h1>
-                <span className="mr-5">{`soru: ${questionIndex + 1}`}</span>
-                {question.title}
-              </h1>
-              {question.options &&
-                question.options.map((option: any, optionIndex: any) => (
-                  <Radio
-                    key={optionIndex}
-                    id={`question${questionIndex + 1}-option${optionIndex + 1}`}
-                    value={option.value}
-                    name={`question${questionIndex + 1}`}
-                    label={option.label}
-                    onChange={(value: any) => onChange(value)}
-                  />
-                ))}
-            </div>
+        {question.options &&
+          question.options.map((option: any, optionIndex: number) => (
+            <Radio
+              key={optionIndex}
+              id={`option${optionIndex + 1}`}
+              value={option}
+              name={`option`}
+              label={option.label}
+              onChange={(selectedOption: any) =>
+                handleRadioChange(selectedOption)
+              }
+            />
           ))}
       </div>
     </div>
   );
 };
 
-const Rating: React.FC<any> = ({ title, onChange }) => {
+const Rating: React.FC<any> = ({ question, onQuestionResponse }: any) => {
   const [selectedRating, setSelectedRating] = useState(0);
 
-  const handleCircleClick = (value: any) => {
+  const handleCircleClick = (value: number) => {
     setSelectedRating(value);
-    onChange(value);
+    onQuestionResponse(question.id, value);
   };
 
   return (
     <div>
-      <h1>{title}</h1>
+      <h1>{question.title}</h1>
       <div className="rating-container flex items-center gap-5">
-        <p>katılıyorum</p>
         <div className="rating-circles">
           {[1, 2, 3, 4, 5].map((value) => (
             <span
@@ -88,13 +161,12 @@ const Rating: React.FC<any> = ({ title, onChange }) => {
             </span>
           ))}
         </div>
-        <p>katılmıyorum</p>
       </div>
     </div>
   );
 };
 
-const Anket: React.FC<any> = ({ questions, onChange }) => {
+const Anket: React.FC<any> = ({ question, onQuestionResponse }: any) => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
   const handleSecim = (option: string) => {
@@ -103,29 +175,23 @@ const Anket: React.FC<any> = ({ questions, onChange }) => {
       : [...selectedOptions, option];
 
     setSelectedOptions(updatedOptions);
-    onChange(updatedOptions);
+    onQuestionResponse(question.id, updatedOptions);
   };
 
   return (
     <div className="">
       <div className="flex flex-col">
-        {questions &&
-          questions.map((question: any, questionIndex: any) => (
-            <div key={questionIndex}>
-              <label className="block text-sm font-medium text-gray-700">
-                {question.title}
-              </label>
-              {question.options &&
-                question.options.map((option: string, optionIndex: any) => (
-                  <div key={optionIndex}>
-                    <input
-                      type="checkbox"
-                      onChange={() => handleSecim(option)}
-                      checked={selectedOptions.includes(option)}
-                    />
-                    <span>{option}</span>
-                  </div>
-                ))}
+        {question.options &&
+          question.options.map((option: string, optionIndex: number) => (
+            <div key={optionIndex}>
+              <div key={optionIndex}>
+                <input
+                  type="checkbox"
+                  onChange={() => handleSecim(option)}
+                  checked={selectedOptions.includes(option)}
+                />
+                <span>{option}</span>
+              </div>
             </div>
           ))}
       </div>

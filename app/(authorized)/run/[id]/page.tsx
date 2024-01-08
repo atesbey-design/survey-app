@@ -4,74 +4,43 @@ import Rating from "@/components/Survey/Rating";
 import Anket from "@/components/Survey/Secim";
 import SurveyRadioContainer from "@/components/Survey/SurveyRadioContainer";
 import SurveyContainer from "@/components/deneme";
-import React, { useState } from "react";
+import Backend from "@/data/Backend";
+import React, { useEffect, useState } from "react";
 
-const ExampleSurveyData = [
-  {
-    type: "radio",
-    title: "Radio Survey",
-    questions: [
-      {
-        title: "Question 1",
-        options: [
-          { label: "Option 1", value: "option1" },
-          { label: "Option 2", value: "option2" },
-          { label: "Option 3", value: "option3" },
-        ],
-      },
-    ],
-    onChange: (selectedOptions: any) => {
-      console.log("Selected Options:", selectedOptions);
-    },
-  },
-  {
-    type: "rating",
-    title: "Rating Survey",
-    questions: [
-      {
-        title: "How satisfied are you with the product?",
-      },
-    ],
-    onChange: (selectedRating: any) => {
-      console.log("Selected Rating:", selectedRating);
-    },
-  },
-  {
-    type: "radio",
-    title: "Radio Survey",
-    questions: [
-      {
-        title: "Question 1",
-        options: [
-          { label: "Option 1", value: "option1" },
-          { label: "Option 2", value: "option2" },
-          { label: "Option 3", value: "option3" },
-        ],
-      },
-    ],
-    onChange: (selectedOptions: any) => {
-      console.log("Selected Options:", selectedOptions);
-    },
-  },
-  {
-    type: "selection",
-    title: "Selection Survey",
-    questions: [
-      {
-        title: "Select all applicable options",
-        options: ["Option 1", "Option 2", "Option 3"],
-      },
-    ],
-    onChange: (selectedOptions: any) => {
-      console.log("Selected Options:", selectedOptions);
-    },
-  },
-];
+const Page = ({ params }: any) => {
+  console.log(params);
+  const [survey, setSurvey] = useState<any>(null);
+  const id = params.id;
 
-const Page = () => {
+  const [surveyData, setSurveyData] = useState<any>({
+    title: "anket1",
+    surveyId: params.id,
+    description: "denemee",
+    questionsAnsver: {},
+  });
+
+  console.log(survey);
+  useEffect(() => {
+    const fetchSurveys = async () => {
+      const surveyData = await Backend.Survey.getSurveyById(id);
+      setSurvey(surveyData.survey);
+    };
+
+    fetchSurveys();
+  }, [id]);
+
+  if (!survey) {
+    return (
+      <div className="  w-full items-center justify-center">
+        <div>
+          <h1>Loading...</h1>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-10">
-      <SurveyContainer data={ExampleSurveyData} />
+      <SurveyContainer data={survey} surveyId={params.id} />
     </div>
   );
 };

@@ -3,20 +3,160 @@ import Modal from "@/components/Modal";
 import Radio from "@/components/Survey/Radio";
 import RatingComponent from "@/components/Survey/Rating";
 import Backend from "@/data/Backend";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AiOutlineFileAdd } from "react-icons/ai";
 
-const SurveyPage: React.FC = () => {
+const SurveyPage: React.FC = ({ params }: any) => {
   const [editableRadio, setEditableRadio] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [title, setTitle] = useState("anket1");
-  const [description, setDescription] = useState("denemee");
 
   const [surveyData, setSurveyData] = useState<any>({
-    title: title,
-    description: description,
+    title: "anket1",
+    description: "denemee",
     questions: [],
   });
+  const id = params.id;
+
+  console.log(surveyData);
+  useEffect(() => {
+    const fetchSurveys = async () => {
+      try {
+        const surveyData = await Backend.Survey.getSurveyById(id);
+
+        // Map the API data to the format expected by your component
+        const mappedSurveyData = {
+          title: surveyData.survey.survey_title,
+          description: surveyData.survey.survey_description,
+          questions: surveyData.survey.questions.map((question: any) => {
+            if (question.survey_types === "radio") {
+              // Map radio type question
+              return {
+                survey_types: "radio",
+                title: question.title,
+                questions: [
+                  {
+                    options: question.options.map((option: any) => ({
+                      label: option.label,
+                      value: option.value,
+                    })),
+                  },
+                ],
+              };
+            } else if (question.survey_types === "rating") {
+              // Map rating type question
+              return {
+                survey_types: "rating",
+                title: question.title,
+                questions: [
+                  {
+                    options: [
+                      {
+                        minValue: question.options[0].minValue,
+                        maxValue: question.options[0].maxValue,
+                      },
+                    ],
+                  },
+                ],
+              };
+            } else if (question.survey_types === "selection") {
+              // Map selection type question
+              return {
+                survey_types: "selection",
+                title: question.title,
+                questions: [
+                  {
+                    options: question.options.map((option: any) => option),
+                  },
+                ],
+              };
+            }
+
+            // Add more conditions as needed for other question types
+
+            return null; // Default case
+          }),
+        };
+
+        setSurveyData(mappedSurveyData);
+      } catch (error) {
+        console.error("Error fetching survey:", error);
+      }
+    };
+
+    fetchSurveys();
+  }, [id]);
+  useEffect(() => {
+    const fetchSurveys = async () => {
+      try {
+        const surveyData = await Backend.Survey.getSurveyById(id);
+        const mappedSurveyData = {
+          title: surveyData.survey.survey_title,
+          description: surveyData.survey.survey_description,
+          questions: surveyData.survey.questions.map((question: any) => {
+            if (question.survey_types === "radio") {
+              // Map radio type question
+              return {
+                survey_types: "radio",
+                title: question.title,
+                questions: [
+                  {
+                    options: question.options.map((option: any) => ({
+                      label: option.label,
+                      value: option.value,
+                    })),
+                  },
+                ],
+              };
+            } else if (question.survey_types === "rating") {
+              // Map rating type question
+              return {
+                survey_types: "rating",
+                title: question.title,
+                questions: [
+                  {
+                    options: [
+                      {
+                        minValue: question.options[0].minValue,
+                        maxValue: question.options[0].maxValue,
+                      },
+                    ],
+                  },
+                ],
+              };
+            } else if (question.survey_types === "selection") {
+              return {
+                survey_types: "selection",
+                title: question.title,
+                questions: [
+                  {
+                    options: question.options.map((option: any) => option),
+                  },
+                ],
+              };
+            }
+
+            return null; // Default case
+          }),
+        };
+
+        setSurveyData(mappedSurveyData);
+      } catch (error) {
+        console.error("Error fetching survey:", error);
+      }
+    };
+
+    fetchSurveys();
+  }, [id]);
+
+  if (!surveyData) {
+    return (
+      <div className="  w-full items-center justify-center">
+        <div>
+          <h1>Loading...</h1>
+        </div>
+      </div>
+    );
+  }
 
   console.log(surveyData);
 
@@ -208,29 +348,18 @@ const SurveyPage: React.FC = () => {
     setSurveyData({ ...surveyData, questions: updatedQuestions });
   };
 
-  const handleCreateSurvey = async () => {
+  const handleUpdateSurvey = async () => {
     if (isSubmitting) {
       return;
     }
     try {
       setIsSubmitting(true);
-
-      const res = await Backend.Survey.createSurvey(surveyData);
+      const res = await Backend.Survey.updateSurvey(surveyData, id);
     } catch (err) {
       console.error("Error:", err);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleTitleChange = (value: string) => {
-    setTitle(value);
-    setSurveyData({ ...surveyData, title: value });
-  };
-
-  const handleDescriptionChange = (value: string) => {
-    setDescription(value);
-    setSurveyData({ ...surveyData, description: value });
   };
 
   return (
@@ -261,29 +390,6 @@ const SurveyPage: React.FC = () => {
           Add Text Input Survey
         </button>
       </div>
-      <div className="w-full mt-4">
-        <label className="block text-sm font-medium text-gray-700">
-          Survey Title
-        </label>
-        <input
-          type="text"
-          className="mt-1 p-2 border rounded-md w-full"
-          value={title}
-          onChange={(e) => handleTitleChange(e.target.value)}
-        />
-      </div>
-
-      <div className="w-full mt-4">
-        <label className="block text-sm font-medium text-gray-700">
-          Survey Description
-        </label>
-        <textarea
-          className="mt-1 p-2 border rounded-md w-full"
-          value={description}
-          onChange={(e) => handleDescriptionChange(e.target.value)}
-        />
-      </div>
-
       <div className="">
         {surveyData.questions.map((question: any, index: number) => (
           <div key={index} className="my-4">
@@ -625,7 +731,7 @@ const SurveyPage: React.FC = () => {
       </div>
       <button
         className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
-        onClick={() => handleCreateSurvey()}
+        onClick={() => handleUpdateSurvey()}
       >
         Submit
       </button>

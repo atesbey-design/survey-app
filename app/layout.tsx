@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { Changa, Inter } from "next/font/google";
 import "./globals.css";
+import { cn } from "../lib/utils";
 
-const changa = Changa({ subsets: ["latin"] });
+const changa = Changa({
+  subsets: ["latin"],
+  variable: "--font-sans",
+});
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={changa.className}>{children}</body>
+      <body className={cn(changa)}>{children}</body>
     </html>
   );
 }
